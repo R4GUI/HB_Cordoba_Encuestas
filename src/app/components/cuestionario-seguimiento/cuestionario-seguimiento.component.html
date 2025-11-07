@@ -1,0 +1,148 @@
+<div class="cuestionario-container">
+  <div class="header">
+    <h1>Hotel HB Córdoba</h1>
+    <p class="tagline">Experiencias que perduran</p>
+  </div>
+
+  <!-- MENSAJE SI YA RESPONDIÓ -->
+  <div class="bloqueado-card" *ngIf="yaRespondio">
+    <div class="check-icon">✓</div>
+    <h1>¡Gracias por confiar en Hotel HB Córdoba!</h1>
+    <p class="message">
+      Usted ya ha completado este cuestionario anteriormente.
+    </p>
+    <p class="message-secondary">
+      Su opinión es muy valiosa para nosotros y nos ayuda a mejorar continuamente.
+    </p>
+    <div class="tagline-footer">Experiencias que perduran</div>
+  </div>
+
+  <!-- CUESTIONARIO NORMAL -->
+  <div class="cuestionario-card" *ngIf="!yaRespondio">
+    <div class="card-header">
+      <h2>Cuestionario de Seguimiento</h2>
+      <p class="subtitle">Queremos acompañarle en cada paso</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="form-content">
+      <div class="question-block">
+        <label class="question-label">¿Qué aspecto considera que está deteniendo su decisión en este momento?</label>
+        <select [(ngModel)]="aspectoDetiene" name="aspecto" class="select-input">
+          <option value="">Seleccione una opción</option>
+          <option value="Presupuesto">Presupuesto</option>
+          <option value="Autorización">Autorización</option>
+          <option value="Otro motivo">Otro motivo</option>
+        </select>
+      </div>
+
+      <div class="question-block">
+        <label class="question-label">¿Le gustaría que le apoyemos ajustando la propuesta para que se adapte mejor a lo que busca?</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="ajustar" [value]="true" [(ngModel)]="ajustarPropuesta">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Sí</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="ajustar" [value]="false" [(ngModel)]="ajustarPropuesta">
+            <span class="radio-custom"></span>
+            <span class="radio-text">No</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <label class="question-label">¿Cómo se ha sentido con la atención de nuestro equipo hasta ahora?</label>
+        <div class="radio-group-vertical">
+          <label class="radio-option">
+            <input type="radio" name="atencion" value="Excelente" [(ngModel)]="atencionEquipo">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Excelente</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="atencion" value="Buena" [(ngModel)]="atencionEquipo">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Buena</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="atencion" value="Puede mejorar" [(ngModel)]="atencionEquipo">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Puede mejorar</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <label class="question-label">¿Le vendría bien que una de nuestras ejecutivas le visite o llame para aclarar dudas y apoyarle en la confirmación de su evento?</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="visita" [value]="true" [(ngModel)]="visitaLlamada" (change)="onVisitaLlamadaChange()">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Sí, me gustaría</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="visita" [value]="false" [(ngModel)]="visitaLlamada" (change)="onVisitaLlamadaChange()">
+            <span class="radio-custom"></span>
+            <span class="radio-text">No, por ahora</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <label class="question-label">¿Prefiere que nos comuniquemos con usted dentro de las próximas 24 horas para brindarle más detalles?</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="contacto24" [value]="true" [(ngModel)]="contacto24h" (change)="onContacto24hChange()">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Sí, por favor</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="contacto24" [value]="false" [(ngModel)]="contacto24h" (change)="onContacto24hChange()">
+            <span class="radio-custom"></span>
+            <span class="radio-text">No es necesario</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- FORMULARIO DE CONTACTO (solo si dijo SÍ a visita o contacto) -->
+      <div class="contacto-card" *ngIf="mostrarFormularioContacto">
+        <div class="contacto-header">
+          <h3>📞 Datos de Contacto</h3>
+          <p>Para poder comunicarnos con usted, por favor complete los siguientes datos:</p>
+        </div>
+
+        <div class="form-group">
+          <label for="nombre">Nombre completo *</label>
+          <input 
+            type="text" 
+            id="nombre" 
+            [(ngModel)]="nombreCliente" 
+            name="nombre"
+            placeholder="Ej: Juan Pérez"
+            class="text-input"
+            required>
+        </div>
+
+        <div class="form-group">
+          <label for="telefono">Teléfono de contacto *</label>
+          <input 
+            type="tel" 
+            id="telefono" 
+            [(ngModel)]="telefonoCliente" 
+            name="telefono"
+            placeholder="Ej: 271 123 4567"
+            class="text-input"
+            required>
+        </div>
+
+        <div class="info-whatsapp">
+          <p>💬 Al enviar, se abrirá WhatsApp con sus datos para confirmar su solicitud</p>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit">
+        {{ mostrarFormularioContacto ? 'Enviar y Contactar por WhatsApp' : 'Enviar Respuestas' }}
+      </button>
+    </form>
+  </div>
+</div>

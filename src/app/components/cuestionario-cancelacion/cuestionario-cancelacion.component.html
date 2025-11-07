@@ -1,0 +1,96 @@
+<div class="cuestionario-container">
+  <div class="header">
+    <h1>Hotel HB Córdoba</h1>
+    <p class="tagline">Experiencias que perduran</p>
+  </div>
+
+  <!-- MENSAJE SI YA RESPONDIÓ -->
+  <div class="bloqueado-card" *ngIf="yaRespondio">
+    <div class="check-icon">✓</div>
+    <h1>¡Gracias por confiar en Hotel HB Córdoba!</h1>
+    <p class="message">
+      Usted ya ha completado este cuestionario anteriormente.
+    </p>
+    <p class="message-secondary">
+      Su opinión es muy valiosa para nosotros y nos ayuda a mejorar continuamente.
+    </p>
+    <div class="tagline-footer">Experiencias que perduran</div>
+  </div>
+
+  <!-- CUESTIONARIO NORMAL -->
+  <div class="cuestionario-card" *ngIf="!yaRespondio">
+    <div class="card-header">
+      <h2>Cuestionario de Cancelación</h2>
+      <p class="subtitle">Sus comentarios son muy valiosos para nosotros</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="form-content">
+      <div class="question-block">
+        <label class="question-label">¿La propuesta que le compartimos se ajustó a lo que tenía contemplado?</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="propuesta" [value]="true" [(ngModel)]="propuestaAjustada">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Sí</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="propuesta" [value]="false" [(ngModel)]="propuestaAjustada">
+            <span class="radio-custom"></span>
+            <span class="radio-text">No</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <label class="question-label">¿La atención recibida cumplió con lo que esperaba?</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="atencion" [value]="true" [(ngModel)]="atencionCumplio">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Sí</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="atencion" [value]="false" [(ngModel)]="atencionCumplio">
+            <span class="radio-custom"></span>
+            <span class="radio-text">No</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <label class="question-label">¿Tuvo oportunidad de encontrar otra alternativa que se ajustara mejor a lo que buscaba?</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="alternativa" [value]="true" [(ngModel)]="encontroAlternativa">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Sí</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="alternativa" [value]="false" [(ngModel)]="encontroAlternativa">
+            <span class="radio-custom"></span>
+            <span class="radio-text">No</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <label class="question-label">¿Podría compartirnos cuál fue el motivo principal por el que decidió no continuar con su evento con nosotros?</label>
+        <select [(ngModel)]="motivoPrincipal" name="motivo" class="select-input">
+          <option value="">Seleccione una opción</option>
+          <option value="La propuesta no se ajustó a lo que buscaba">La propuesta no se ajustó a lo que buscaba</option>
+          <option value="Capacidad de salones">Capacidad de salones</option>
+          <option value="Encontró otra alternativa">Encontró otra alternativa</option>
+          <option value="Factores externos">Factores externos</option>
+          <option value="Disponibilidad">Disponibilidad</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-submit">Enviar Respuestas</button>
+
+      <div class="mensaje-cierre">
+        <p>Agradecemos sinceramente el tiempo que nos brindó.</p>
+        <p>Esperamos tener la oportunidad de recibirle nuevamente y apoyar la realización de su evento en el futuro.</p>
+      </div>
+    </form>
+  </div>
+</div>

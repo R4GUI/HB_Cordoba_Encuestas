@@ -1,0 +1,99 @@
+<div class="admin-container">
+  <div class="header">
+    <div class="header-content">
+      <div>
+        <h1>Hotel HB Córdoba</h1>
+        <p class="tagline">Panel de Administración</p>
+      </div>
+      <div class="header-buttons">
+        <button class="btn-reset" (click)="limpiarTodosLosDatos()">🗑️ Limpiar Datos</button>
+        <button class="btn-logout" (click)="logout()">Cerrar Sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-content">
+    <div class="stats-overview">
+      <div class="stat-card">
+        <div class="stat-number">{{ estadisticas?.totalCancelaciones || 0 }}</div>
+        <div class="stat-label">Encuestas de Cancelación</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ estadisticas?.totalSeguimientos || 0 }}</div>
+        <div class="stat-label">Encuestas de Seguimiento</div>
+      </div>
+    </div>
+
+    <div class="charts-section" *ngIf="estadisticas?.cancelacion">
+      <div class="chart-card">
+        <h2>Estadísticas de Cancelación</h2>
+        
+        <div class="stat-item">
+          <span class="stat-label-inline">Propuesta se ajustó:</span>
+          <span class="stat-value">{{ estadisticas.cancelacion.propuestaAjustada }}%</span>
+        </div>
+        
+        <div class="stat-item">
+          <span class="stat-label-inline">Atención cumplió expectativas:</span>
+          <span class="stat-value">{{ estadisticas.cancelacion.atencionCumplio }}%</span>
+        </div>
+        
+        <div class="stat-item">
+          <span class="stat-label-inline">Encontraron alternativa:</span>
+          <span class="stat-value">{{ estadisticas.cancelacion.encontroAlternativa }}%</span>
+        </div>
+
+        <h3>Motivos Principales</h3>
+        <div class="list-items">
+          <div class="list-item" *ngFor="let motivo of obtenerClaves(estadisticas.cancelacion.motivosPrincipales)">
+            <span class="item-label">{{ motivo }}</span>
+            <span class="item-count">{{ estadisticas.cancelacion.motivosPrincipales[motivo] }} respuestas</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-section" *ngIf="estadisticas?.seguimiento">
+      <div class="chart-card">
+        <h2>Estadísticas de Seguimiento</h2>
+        
+        <div class="stat-item">
+          <span class="stat-label-inline">Quieren ajustar propuesta:</span>
+          <span class="stat-value">{{ estadisticas.seguimiento.quierenAjuste }}%</span>
+        </div>
+        
+        <div class="stat-item">
+          <span class="stat-label-inline">Quieren visita/llamada:</span>
+          <span class="stat-value">{{ estadisticas.seguimiento.quierenVisita }}%</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="stat-label-inline">Quieren contacto en 24h:</span>
+          <span class="stat-value">{{ estadisticas.seguimiento.quierenContacto24h }}%</span>
+        </div>
+
+        <h3>Aspectos que Detienen</h3>
+        <div class="list-items">
+          <div class="list-item" *ngFor="let aspecto of obtenerClaves(estadisticas.seguimiento.aspectos)">
+            <span class="item-label">{{ aspecto }}</span>
+            <span class="item-count">{{ estadisticas.seguimiento.aspectos[aspecto] }} respuestas</span>
+          </div>
+        </div>
+
+        <h3>Calificación de Atención</h3>
+        <div class="list-items">
+          <div class="list-item" *ngFor="let calificacion of obtenerClaves(estadisticas.seguimiento.atencion)">
+            <span class="item-label">{{ calificacion }}</span>
+            <span class="item-count">{{ estadisticas.seguimiento.atencion[calificacion] }} respuestas</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="estadisticas?.totalCancelaciones === 0 && estadisticas?.totalSeguimientos === 0">
+      <div class="empty-icon">📊</div>
+      <h3>No hay datos todavía</h3>
+      <p>Las estadísticas aparecerán aquí cuando los clientes completen las encuestas.</p>
+    </div>
+  </div>
+</div>
