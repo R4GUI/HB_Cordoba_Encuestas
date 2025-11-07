@@ -28,31 +28,24 @@ export class AdminDashboardComponent implements OnInit {
     this.cargarEstadisticas();
   }
 
-  cargarEstadisticas(): void {
-    this.estadisticas = this.encuestasService.obtenerEstadisticas();
-  }
+async cargarEstadisticas(): Promise<void> {
+  this.estadisticas = await this.encuestasService.obtenerEstadisticas();
+}
 
   obtenerClaves(obj: any): string[] {
     return obj ? Object.keys(obj) : [];
   }
 
-  limpiarTodosLosDatos(): void {
-    if (confirm('⚠️ ¿Está seguro de que desea BORRAR TODOS LOS DATOS?\n\nEsto eliminará:\n- Todas las respuestas de cancelación\n- Todas las respuestas de seguimiento\n- Los bloqueos de cuestionarios\n\nEsta acción NO se puede deshacer.')) {
-      // Limpiar localStorage completamente
-      localStorage.removeItem('respuestasCancelacion');
-      localStorage.removeItem('respuestasSeguimiento');
-      localStorage.removeItem('usuario_respondio_cancelacion');
-      localStorage.removeItem('usuario_respondio_seguimiento');
-      
-      alert('✅ Todos los datos han sido eliminados exitosamente.\n\nLos cuestionarios están listos para ser usados de nuevo.');
-      
-      // Recargar estadísticas
-      this.cargarEstadisticas();
-      
-      // Recargar la página para refrescar todo
-      window.location.reload();
-    }
+limpiarTodosLosDatos(): void {
+  if (confirm('⚠️ NOTA: Esta función solo limpia los bloqueos locales.\n\nPara borrar las respuestas de Firebase, debe hacerlo manualmente desde la consola de Firebase.\n\n¿Desea limpiar los bloqueos locales?')) {
+    localStorage.removeItem('usuario_respondio_cancelacion');
+    localStorage.removeItem('usuario_respondio_seguimiento');
+    
+    alert('✅ Bloqueos locales eliminados.\n\nPara borrar datos de Firebase, vaya a:\nhttps://console.firebase.google.com');
+    
+    this.cargarEstadisticas();
   }
+}
 
   logout(): void {
     this.authService.logout();

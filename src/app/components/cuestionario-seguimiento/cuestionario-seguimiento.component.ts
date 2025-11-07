@@ -42,26 +42,23 @@ export class CuestionarioSeguimientoComponent implements OnInit {
     this.mostrarFormularioContacto = this.visitaLlamada === true || this.contacto24h === true;
   }
 
-  onSubmit(): void {
-    if (!this.aspectoDetiene || this.ajustarPropuesta === null || 
-        !this.atencionEquipo || this.visitaLlamada === null || this.contacto24h === null) {
-      alert('Por favor, responda todas las preguntas');
+async onSubmit(): Promise<void> {
+  if (!this.aspectoDetiene || this.ajustarPropuesta === null || 
+      !this.atencionEquipo || this.visitaLlamada === null || this.contacto24h === null) {
+    alert('Por favor, responda todas las preguntas');
+    return;
+  }
+
+  if (this.mostrarFormularioContacto) {
+    if (!this.nombreCliente.trim() || !this.telefonoCliente.trim()) {
+      alert('Por favor, ingrese su nombre y teléfono para que podamos contactarle');
       return;
     }
+    this.enviarWhatsApp();
+  }
 
-    // Si quiere que lo contacten, validar datos
-    if (this.mostrarFormularioContacto) {
-      if (!this.nombreCliente.trim() || !this.telefonoCliente.trim()) {
-        alert('Por favor, ingrese su nombre y teléfono para que podamos contactarle');
-        return;
-      }
-
-      // Enviar mensaje a WhatsApp
-      this.enviarWhatsApp();
-    }
-
-    // Guardar respuesta
-    this.encuestasService.guardarRespuestaSeguimiento({
+  try {
+    await this.encuestasService.guardarRespuestaSeguimiento({
       aspectoDetiene: this.aspectoDetiene,
       ajustarPropuesta: this.ajustarPropuesta,
       atencionEquipo: this.atencionEquipo,
@@ -72,7 +69,10 @@ export class CuestionarioSeguimientoComponent implements OnInit {
     });
 
     this.router.navigate(['/gracias'], { queryParams: { tipo: 'seguimiento' } });
+  } catch (error) {
+    alert('Error al guardar la respuesta. Por favor, intente de nuevo.');
   }
+}
 
   enviarWhatsApp(): void {
     const numeroEmpresa = '5212713977168'; // +52 271 3977168

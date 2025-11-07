@@ -27,14 +27,15 @@ export class CuestionarioCancelacionComponent implements OnInit {
     this.yaRespondio = this.encuestasService.yaRespondoCancelacion();
   }
 
-  onSubmit(): void {
-    if (this.propuestaAjustada === null || this.atencionCumplio === null || 
-        this.encontroAlternativa === null || !this.motivoPrincipal) {
-      alert('Por favor, responda todas las preguntas');
-      return;
-    }
+ async onSubmit(): Promise<void> {
+  if (this.propuestaAjustada === null || this.atencionCumplio === null || 
+      this.encontroAlternativa === null || !this.motivoPrincipal) {
+    alert('Por favor, responda todas las preguntas');
+    return;
+  }
 
-    this.encuestasService.guardarRespuestaCancelacion({
+  try {
+    await this.encuestasService.guardarRespuestaCancelacion({
       propuestaAjustada: this.propuestaAjustada,
       atencionCumplio: this.atencionCumplio,
       encontroAlternativa: this.encontroAlternativa,
@@ -42,5 +43,8 @@ export class CuestionarioCancelacionComponent implements OnInit {
     });
 
     this.router.navigate(['/gracias'], { queryParams: { tipo: 'cancelacion' } });
+  } catch (error) {
+    alert('Error al guardar la respuesta. Por favor, intente de nuevo.');
   }
+ }
 }

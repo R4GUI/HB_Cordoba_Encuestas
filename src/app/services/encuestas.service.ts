@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, getDocs, Timestamp } from 'firebase/firestore';
+import { environment } from '../../environments/environment';
 
 export interface RespuestaCancelacion {
-  id: string;
+  id?: string;
   fecha: Date;
   propuestaAjustada: boolean;
   atencionCumplio: boolean;
@@ -12,7 +15,7 @@ export interface RespuestaCancelacion {
 }
 
 export interface RespuestaSeguimiento {
-  id: string;
+  id?: string;
   fecha: Date;
   aspectoDetiene: string;
   ajustarPropuesta: boolean;
@@ -27,25 +30,24 @@ export interface RespuestaSeguimiento {
   providedIn: 'root'
 })
 export class EncuestasService {
+  private db: any;
   private respuestasCancelacion: RespuestaCancelacion[] = [];
   private respuestasSeguimiento: RespuestaSeguimiento[] = [];
 
   constructor() {
-    this.cargarDatos();
-  }
-
-  private cargarDatos(): void {
-    const cancelacion = localStorage.getItem('respuestasCancelacion');
-    const seguimiento = localStorage.getItem('respuestasSeguimiento');
+    // Inicializar Firebase
+    const app = initializeApp(environment.firebase);
+    this.db = getFirestore(app);
     
-    if (cancelacion) {
-      this.respuestasCancelacion = JSON.parse(cancelacion);
-    }
-    if (seguimiento) {
-      this.respuestasSeguimiento = JSON.parse(seguimiento);
-    }
+    // Verificar si ya respondió (localStorage solo para bloqueo local)
+    this.cargarBloqueos();
   }
 
+  private cargarBloqueos(): void {
+    // Solo para bloquear en el dispositivo actual
+  }
+
+  // Verificar si el usuario ya respondió (solo en este dispositivo)
   yaRespondoCancelacion(): boolean {
     return localStorage.getItem('usuario_respondio_cancelacion') === 'true';
   }
@@ -54,45 +56,103 @@ export class EncuestasService {
     return localStorage.getItem('usuario_respondio_seguimiento') === 'true';
   }
 
-  marcarCancelacionRespondida(): void {
+  private marcarCancelacionRespondida(): void {
     localStorage.setItem('usuario_respondio_cancelacion', 'true');
   }
 
-  marcarSeguimientoRespondido(): void {
+  private marcarSeguimientoRespondido(): void {
     localStorage.setItem('usuario_respondio_seguimiento', 'true');
   }
 
-  guardarRespuestaCancelacion(respuesta: Omit<RespuestaCancelacion, 'id' | 'fecha'>): void {
-    const nueva: RespuestaCancelacion = {
-      id: Date.now().toString(),
-      fecha: new Date(),
-      ...respuesta
-    };
-    this.respuestasCancelacion.push(nueva);
-    localStorage.setItem('respuestasCancelacion', JSON.stringify(this.respuestasCancelacion));
-    this.marcarCancelacionRespondida();
+  // Guardar respuesta de cancelación en Firebase
+  async guardarRespuestaCancelacion(respuesta: Omit<RespuestaCancelacion, 'id' | 'fecha'>): Promise<void> {
+    try {
+      const docRef = await addDoc(collection(this.db, 'respuestasCancelacion'), {
+        ...respuesta,
+        fecha: Timestamp.now()
+      });
+      console.log('Respuesta guardada con ID:', docRef.id);
+      this.marcarCancelacionRespondida();
+    } catch (error) {
+      console.error('Error al guardar respuesta:', error);
+      throw error;
+    }
   }
 
-  guardarRespuestaSeguimiento(respuesta: Omit<RespuestaSeguimiento, 'id' | 'fecha'>): void {
-    const nueva: RespuestaSeguimiento = {
-      id: Date.now().toString(),
-      fecha: new Date(),
-      ...respuesta
-    };
-    this.respuestasSeguimiento.push(nueva);
-    localStorage.setItem('respuestasSeguimiento', JSON.stringify(this.respuestasSeguimiento));
-    this.marcarSeguimientoRespondido();
+  // Guardar respuesta de seguimiento en Firebase
+  async guardarRespuestaSeguimiento(respuesta: Omit<RespuestaSeguimiento, 'id' | 'fecha'>): Promise<void> {
+    try {
+      const docRef = await addDoc(collection(this.db, 'respuestasSeguimiento'), {
+        ...respuesta,
+        fecha: Timestamp.now()
+      });
+      console.log('Respuesta guardada con ID:', docRef.id);
+      this.marcarSeguimientoRespondido();
+    } catch (error) {
+      console.error('Error al guardar respuesta:', error);
+      throw error;
+    }
   }
 
-  obtenerRespuestasCancelacion(): RespuestaCancelacion[] {
-    return this.respuestasCancelacion;
+  // Obtener todas las respuestas de cancelación desde Firebase
+  async obtenerRespuestasCancelacion(): Promise<RespuestaCancelacion[]> {
+    try {
+      const querySnapshot = await getDocs(collection(this.db, 'respuestasCancelacion'));
+      this.respuestasCancelacion = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        this.respuestasCancelacion.push({
+          id: doc.id,
+          fecha: data['fecha'].toDate(),
+          propuestaAjustada: data['propuestaAjustada'],
+          atencionCumplio: data['atencionCumplio'],
+          encontroAlternativa: data['encontroAlternativa'],
+          motivoPrincipal: data['motivoPrincipal'],
+          nombreCliente: data['nombreCliente'],
+          telefonoCliente: data['telefonoCliente']
+        });
+      });
+      
+      return this.respuestasCancelacion;
+    } catch (error) {
+      console.error('Error al obtener respuestas:', error);
+      return [];
+    }
   }
 
-  obtenerRespuestasSeguimiento(): RespuestaSeguimiento[] {
-    return this.respuestasSeguimiento;
+  // Obtener todas las respuestas de seguimiento desde Firebase
+  async obtenerRespuestasSeguimiento(): Promise<RespuestaSeguimiento[]> {
+    try {
+      const querySnapshot = await getDocs(collection(this.db, 'respuestasSeguimiento'));
+      this.respuestasSeguimiento = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        this.respuestasSeguimiento.push({
+          id: doc.id,
+          fecha: data['fecha'].toDate(),
+          aspectoDetiene: data['aspectoDetiene'],
+          ajustarPropuesta: data['ajustarPropuesta'],
+          atencionEquipo: data['atencionEquipo'],
+          visitaLlamada: data['visitaLlamada'],
+          contacto24h: data['contacto24h'],
+          nombreCliente: data['nombreCliente'],
+          telefonoCliente: data['telefonoCliente']
+        });
+      });
+      
+      return this.respuestasSeguimiento;
+    } catch (error) {
+      console.error('Error al obtener respuestas:', error);
+      return [];
+    }
   }
 
-  obtenerEstadisticas() {
+  async obtenerEstadisticas() {
+    await this.obtenerRespuestasCancelacion();
+    await this.obtenerRespuestasSeguimiento();
+
     return {
       totalCancelaciones: this.respuestasCancelacion.length,
       totalSeguimientos: this.respuestasSeguimiento.length,
