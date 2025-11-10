@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, Timestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, Timestamp } from 'firebase/firestore';
 import { environment } from '../../environments/environment';
 
 export interface RespuestaCancelacion {
@@ -213,4 +213,93 @@ export class EncuestasService {
     });
     return atencion;
   }
+
+  // Eliminar TODAS las respuestas de Firebase (PELIGROSO)
+async eliminarTodasLasRespuestas(): Promise<void> {
+  try {
+    // Eliminar cancelaciones
+    const cancelacionSnapshot = await getDocs(collection(this.db, 'respuestasCancelacion'));
+    const deletePromises: Promise<void>[] = [];
+    
+    cancelacionSnapshot.forEach((doc) => {
+      deletePromises.push(deleteDoc(doc.ref));
+    });
+
+    // Eliminar seguimientos
+    const seguimientoSnapshot = await getDocs(collection(this.db, 'respuestasSeguimiento'));
+    
+    seguimientoSnapshot.forEach((doc) => {
+      deletePromises.push(deleteDoc(doc.ref));
+    });
+
+    await Promise.all(deletePromises);
+    
+    console.log('Todas las respuestas eliminadas de Firebase');
+  } catch (error) {
+    console.error('Error al eliminar respuestas:', error);
+    throw error;
+  }
+}
+
+// Obtener respuestas con filtro de fecha
+async obtenerRespuestasCancelacionPorFecha(fechaInicio: Date, fechaFin: Date): Promise<RespuestaCancelacion[]> {
+  try {
+    const querySnapshot = await getDocs(collection(this.db, 'respuestasCancelacion'));
+    const respuestas: RespuestaCancelacion[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const fecha = data['fecha'].toDate();
+      
+      if (fecha >= fechaInicio && fecha <= fechaFin) {
+        respuestas.push({
+          id: doc.id,
+          fecha: fecha,
+          propuestaAjustada: data['propuestaAjustada'],
+          atencionCumplio: data['atencionCumplio'],
+          encontroAlternativa: data['encontroAlternativa'],
+          motivoPrincipal: data['motivoPrincipal'],
+          nombreCliente: data['nombreCliente'],
+          telefonoCliente: data['telefonoCliente']
+        });
+      }
+    });
+    
+    return respuestas.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+  } catch (error) {
+    console.error('Error al obtener respuestas:', error);
+    return [];
+  }
+}
+
+async obtenerRespuestasSeguimientoPorFecha(fechaInicio: Date, fechaFin: Date): Promise<RespuestaSeguimiento[]> {
+  try {
+    const querySnapshot = await getDocs(collection(this.db, 'respuestasSeguimiento'));
+    const respuestas: RespuestaSeguimiento[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const fecha = data['fecha'].toDate();
+      
+      if (fecha >= fechaInicio && fecha <= fechaFin) {
+        respuestas.push({
+          id: doc.id,
+          fecha: fecha,
+          aspectoDetiene: data['aspectoDetiene'],
+          ajustarPropuesta: data['ajustarPropuesta'],
+          atencionEquipo: data['atencionEquipo'],
+          visitaLlamada: data['visitaLlamada'],
+          contacto24h: data['contacto24h'],
+          nombreCliente: data['nombreCliente'],
+          telefonoCliente: data['telefonoCliente']
+        });
+      }
+    });
+    
+    return respuestas.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+  } catch (error) {
+    console.error('Error al obtener respuestas:', error);
+    return [];
+  }
+}
 }

@@ -1,7 +1,7 @@
 <div class="admin-container">
   <div class="header">
     <div class="header-content">
-      <div>
+      <div (click)="clickEnLogo()" style="cursor: pointer;">
         <h1>Hotel HB Córdoba</h1>
         <p class="tagline">Panel de Administración</p>
       </div>
@@ -13,14 +13,37 @@
     </div>
   </div>
 
+  <!-- BOTÓN SECRETO PARA ELIMINAR TODO -->
+  <div class="danger-zone" *ngIf="mostrarBotonEliminar">
+    <button class="btn-delete-all" (click)="eliminarTodoFirebase()">
+      ⚠️ ELIMINAR TODO DE FIREBASE ⚠️
+    </button>
+  </div>
+
+  <!-- PESTAÑAS DE NAVEGACIÓN -->
+  <div class="tabs-container">
+    <button 
+      class="tab-button" 
+      [class.active]="vistaActual === 'estadisticas'"
+      (click)="cambiarVista('estadisticas')">
+      📊 Estadísticas Generales
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="vistaActual === 'detalle'"
+      (click)="cambiarVista('detalle')">
+      📋 Historial Detallado
+    </button>
+  </div>
+
   <!-- INDICADOR DE CARGA -->
   <div class="loading-container" *ngIf="cargando">
     <div class="spinner"></div>
     <p>Cargando datos desde Firebase...</p>
   </div>
 
-  <!-- CONTENIDO DEL DASHBOARD -->
-  <div class="dashboard-content" *ngIf="!cargando">
+  <!-- VISTA DE ESTADÍSTICAS -->
+  <div class="dashboard-content" *ngIf="!cargando && vistaActual === 'estadisticas'">
     <div class="stats-overview">
       <div class="stat-card">
         <div class="stat-number">{{ estadisticas?.totalCancelaciones || 0 }}</div>
@@ -103,6 +126,115 @@
       <h3>No hay datos todavía</h3>
       <p>Las estadísticas aparecerán aquí cuando los clientes completen las encuestas.</p>
       <button class="btn-reload-empty" (click)="recargarDatos()">🔄 Recargar datos</button>
+    </div>
+  </div>
+
+  <!-- VISTA DE HISTORIAL DETALLADO -->
+  <div class="dashboard-content" *ngIf="!cargando && vistaActual === 'detalle'">
+    <!-- FILTROS -->
+    <div class="filtros-container">
+      <h3>Filtrar por fecha</h3>
+      <div class="filtros-row">
+        <select [(ngModel)]="filtroSeleccionado" (change)="aplicarFiltro()" class="filtro-select">
+          <option value="todo">Todo el historial</option>
+          <option value="hoy">Hoy</option>
+          <option value="semana">Última semana</option>
+          <option value="mes">Último mes</option>
+          <option value="personalizado">Rango personalizado</option>
+        </select>
+
+        <div *ngIf="filtroSeleccionado === 'personalizado'" class="fecha-inputs">
+          <input type="date" [(ngModel)]="fechaInicio" class="fecha-input">
+          <span>hasta</span>
+          <input type="date" [(ngModel)]="fechaFin" class="fecha-input">
+          <button class="btn-aplicar" (click)="aplicarFiltro()">Aplicar</button>
+        </div>
+
+        <button class="btn-exportar" (click)="exportarAExcel()">📥 Exportar Excel</button>
+      </div>
+    </div>
+
+    <!-- TABLA DE CANCELACIONES -->
+    <div class="tabla-section" *ngIf="respuestasCancelacion.length > 0">
+      <h3>Encuestas de Cancelación ({{ respuestasCancelacion.length }})</h3>
+      <div class="tabla-responsive">
+        <table class="tabla-detalle">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Propuesta Ajustada</th>
+              <th>Atención</th>
+              <th>Alternativa</th>
+              <th>Motivo</th>
+              <th>Contacto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let resp of respuestasCancelacion">
+              <td>{{ formatearFecha(resp.fecha) }}</td>
+              <td><span class="badge" [class.badge-si]="resp.propuestaAjustada" [class.badge-no]="!resp.propuestaAjustada">{{ resp.propuestaAjustada ? 'Sí' : 'No' }}</span></td>
+              <td><span class="badge" [class.badge-si]="resp.atencionCumplio" [class.badge-no]="!resp.atencionCumplio">{{ resp.atencionCumplio ? 'Sí' : 'No' }}</span></td>
+              <td><span class="badge" [class.badge-si]="resp.encontroAlternativa" [class.badge-no]="!resp.encontroAlternativa">{{ resp.encontroAlternativa ? 'Sí' : 'No' }}</span></td>
+              <td>{{ resp.motivoPrincipal }}</td>
+              <td>
+                <div *ngIf="resp.nombreCliente" class="contacto-info">
+                  <strong>{{ resp.nombreCliente }}</strong><br>
+                  <a *ngIf="resp.telefonoCliente" [href]="'https://wa.me/' + resp.telefonoCliente" target="_blank" class="whatsapp-link">
+                    {{ resp.telefonoCliente }}
+                  </a>
+                </div>
+                <span *ngIf="!resp.nombreCliente">-</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TABLA DE SEGUIMIENTOS -->
+    <div class="tabla-section" *ngIf="respuestasSeguimiento.length > 0">
+      <h3>Encuestas de Seguimiento ({{ respuestasSeguimiento.length }})</h3>
+      <div class="tabla-responsive">
+        <table class="tabla-detalle">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Aspecto que Detiene</th>
+              <th>Ajustar Propuesta</th>
+              <th>Atención</th>
+              <th>Visita/Llamada</th>
+              <th>Contacto 24h</th>
+              <th>Contacto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let resp of respuestasSeguimiento">
+              <td>{{ formatearFecha(resp.fecha) }}</td>
+              <td>{{ resp.aspectoDetiene }}</td>
+              <td><span class="badge" [class.badge-si]="resp.ajustarPropuesta" [class.badge-no]="!resp.ajustarPropuesta">{{ resp.ajustarPropuesta ? 'Sí' : 'No' }}</span></td>
+              <td><span class="badge badge-atencion">{{ resp.atencionEquipo }}</span></td>
+              <td><span class="badge" [class.badge-si]="resp.visitaLlamada" [class.badge-no]="!resp.visitaLlamada">{{ resp.visitaLlamada ? 'Sí' : 'No' }}</span></td>
+              <td><span class="badge" [class.badge-si]="resp.contacto24h" [class.badge-no]="!resp.contacto24h">{{ resp.contacto24h ? 'Sí' : 'No' }}</span></td>
+              <td>
+                <div *ngIf="resp.nombreCliente" class="contacto-info">
+                  <strong>{{ resp.nombreCliente }}</strong><br>
+                  <a *ngIf="resp.telefonoCliente" [href]="'https://wa.me/' + resp.telefonoCliente" target="_blank" class="whatsapp-link">
+                    {{ resp.telefonoCliente }}
+                  </a>
+                </div>
+                <span *ngIf="!resp.nombreCliente">-</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SIN RESULTADOS -->
+    <div class="empty-state" *ngIf="respuestasCancelacion.length === 0 && respuestasSeguimiento.length === 0">
+      <div class="empty-icon">📅</div>
+      <h3>No hay respuestas en este período</h3>
+      <p>Intente seleccionar un rango de fechas diferente</p>
     </div>
   </div>
 </div>
