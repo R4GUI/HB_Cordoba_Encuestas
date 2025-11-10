@@ -55,7 +55,7 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  async recargarDatos(): void {
+  async recargarDatos(): Promise<void> {
     await this.cargarEstadisticas();
     alert('✅ Datos recargados desde Firebase');
   }
