@@ -136,48 +136,69 @@ export class EncuestasService {
   }
 
   // Guardar respuesta de seguimiento en Firebase
-  async guardarRespuestaSeguimiento(respuesta: Omit<RespuestaSeguimiento, 'id' | 'fecha'>): Promise<void> {
-    try {
-      const docRef = await addDoc(collection(this.db, 'respuestasSeguimiento'), {
-        ...respuesta,
-        fecha: Timestamp.now(),
-        deviceId: this.obtenerIDDispositivo()
-      });
-      console.log('Respuesta guardada con ID:', docRef.id);
-      await this.marcarSeguimientoRespondido();
-    } catch (error) {
-      console.error('Error al guardar respuesta:', error);
-      throw error;
+// Guardar respuesta de seguimiento en Firebase
+async guardarRespuestaSeguimiento(respuesta: Omit<RespuestaSeguimiento, 'id' | 'fecha'>): Promise<void> {
+  try {
+    // Crear objeto sin campos undefined
+    const datosLimpios: any = {
+      aspectoDetiene: respuesta.aspectoDetiene,
+      ajustarPropuesta: respuesta.ajustarPropuesta,
+      atencionEquipo: respuesta.atencionEquipo,
+      visitaLlamada: respuesta.visitaLlamada,
+      contacto24h: respuesta.contacto24h,
+      fecha: Timestamp.now(),
+      deviceId: this.obtenerIDDispositivo()
+    };
+
+    // Solo agregar campos opcionales si tienen valor
+    if (respuesta.nombreCliente && respuesta.nombreCliente.trim()) {
+      datosLimpios.nombreCliente = respuesta.nombreCliente.trim();
     }
+
+    if (respuesta.telefonoCliente && respuesta.telefonoCliente.trim()) {
+      datosLimpios.telefonoCliente = respuesta.telefonoCliente.trim();
+    }
+
+    const docRef = await addDoc(collection(this.db, 'respuestasSeguimiento'), datosLimpios);
+    console.log('Respuesta guardada con ID:', docRef.id);
+    await this.marcarSeguimientoRespondido();
+  } catch (error) {
+    console.error('Error al guardar respuesta:', error);
+    throw error;
   }
+}
 
   // Obtener todas las respuestas de cancelación desde Firebase
-  async obtenerRespuestasCancelacion(): Promise<RespuestaCancelacion[]> {
-    try {
-      const querySnapshot = await getDocs(collection(this.db, 'respuestasCancelacion'));
-      this.respuestasCancelacion = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        this.respuestasCancelacion.push({
-          id: doc.id,
-          fecha: data['fecha'].toDate(),
-          propuestaAjustada: data['propuestaAjustada'],
-          atencionCumplio: data['atencionCumplio'],
-          encontroAlternativa: data['encontroAlternativa'],
-          motivoPrincipal: data['motivoPrincipal'],
-          nombreCliente: data['nombreCliente'],
-          telefonoCliente: data['telefonoCliente'],
-          deviceId: data['deviceId']
-        });
-      });
-      
-      return this.respuestasCancelacion;
-    } catch (error) {
-      console.error('Error al obtener respuestas:', error);
-      return [];
+// Guardar respuesta de cancelación en Firebase
+async guardarRespuestaCancelacion(respuesta: Omit<RespuestaCancelacion, 'id' | 'fecha'>): Promise<void> {
+  try {
+    // Crear objeto sin campos undefined
+    const datosLimpios: any = {
+      propuestaAjustada: respuesta.propuestaAjustada,
+      atencionCumplio: respuesta.atencionCumplio,
+      encontroAlternativa: respuesta.encontroAlternativa,
+      motivoPrincipal: respuesta.motivoPrincipal,
+      fecha: Timestamp.now(),
+      deviceId: this.obtenerIDDispositivo()
+    };
+
+    // Solo agregar campos opcionales si tienen valor
+    if (respuesta.nombreCliente && respuesta.nombreCliente.trim()) {
+      datosLimpios.nombreCliente = respuesta.nombreCliente.trim();
     }
+
+    if (respuesta.telefonoCliente && respuesta.telefonoCliente.trim()) {
+      datosLimpios.telefonoCliente = respuesta.telefonoCliente.trim();
+    }
+
+    const docRef = await addDoc(collection(this.db, 'respuestasCancelacion'), datosLimpios);
+    console.log('Respuesta guardada con ID:', docRef.id);
+    await this.marcarCancelacionRespondida();
+  } catch (error) {
+    console.error('Error al guardar respuesta:', error);
+    throw error;
   }
+}
 
   // Obtener todas las respuestas de seguimiento desde Firebase
   async obtenerRespuestasSeguimiento(): Promise<RespuestaSeguimiento[]> {
