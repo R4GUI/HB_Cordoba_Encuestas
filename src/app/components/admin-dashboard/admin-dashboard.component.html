@@ -6,13 +6,21 @@
         <p class="tagline">Panel de Administración</p>
       </div>
       <div class="header-buttons">
-        <button class="btn-reset" (click)="limpiarTodosLosDatos()">🗑️ Limpiar Datos</button>
+        <button class="btn-reload" (click)="recargarDatos()">🔄 Recargar</button>
+        <button class="btn-reset" (click)="limpiarTodosLosDatos()">🗑️ Limpiar Bloqueos</button>
         <button class="btn-logout" (click)="logout()">Cerrar Sesión</button>
       </div>
     </div>
   </div>
 
-  <div class="dashboard-content">
+  <!-- INDICADOR DE CARGA -->
+  <div class="loading-container" *ngIf="cargando">
+    <div class="spinner"></div>
+    <p>Cargando datos desde Firebase...</p>
+  </div>
+
+  <!-- CONTENIDO DEL DASHBOARD -->
+  <div class="dashboard-content" *ngIf="!cargando">
     <div class="stats-overview">
       <div class="stat-card">
         <div class="stat-number">{{ estadisticas?.totalCancelaciones || 0 }}</div>
@@ -94,6 +102,7 @@
       <div class="empty-icon">📊</div>
       <h3>No hay datos todavía</h3>
       <p>Las estadísticas aparecerán aquí cuando los clientes completen las encuestas.</p>
+      <button class="btn-reload-empty" (click)="recargarDatos()">🔄 Recargar datos</button>
     </div>
   </div>
 </div>
