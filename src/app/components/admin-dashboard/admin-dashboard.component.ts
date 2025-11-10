@@ -123,12 +123,18 @@ export class AdminDashboardComponent implements OnInit {
     return obj ? Object.keys(obj) : [];
   }
 
-  limpiarTodosLosDatos(): void {
-    if (confirm('⚠️ NOTA: Esta función solo limpia los bloqueos locales de este dispositivo.\n\nPara ver todas las respuestas en Firebase, simplemente recargue la página.\n\n¿Desea limpiar los bloqueos locales para poder responder de nuevo desde este dispositivo?')) {
-      localStorage.removeItem('usuario_respondio_cancelacion');
-      localStorage.removeItem('usuario_respondio_seguimiento');
-      
-      alert('✅ Bloqueos locales eliminados.\n\nAhora puede responder los cuestionarios de nuevo desde este dispositivo.');
+  async limpiarBloqueos(): Promise<void> {
+    if (confirm('⚠️ ¿Desea eliminar TODOS los bloqueos?\n\nEsto permitirá que TODOS los dispositivos puedan volver a responder las encuestas.\n\n¿Está seguro?')) {
+      try {
+        this.cargando = true;
+        await this.encuestasService.eliminarTodosLosBloqueos();
+        alert('✅ Todos los bloqueos han sido eliminados.\n\nAhora todos los dispositivos pueden responder de nuevo.');
+      } catch (error) {
+        alert('❌ Error al eliminar los bloqueos');
+        console.error(error);
+      } finally {
+        this.cargando = false;
+      }
     }
   }
 
@@ -148,7 +154,7 @@ export class AdminDashboardComponent implements OnInit {
       setTimeout(() => {
         this.mostrarBotonEliminar = false;
         this.clicksEnLogo = 0;
-      }, 10000); // El botón desaparece después de 10 segundos
+      }, 10000);
     }
   }
 
@@ -181,7 +187,6 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   exportarAExcel(): void {
-    // Preparar datos
     let csv = 'ENCUESTAS DE CANCELACIÓN\n\n';
     csv += 'Fecha,Propuesta Ajustada,Atención Cumplió,Encontró Alternativa,Motivo,Nombre,Teléfono\n';
     
@@ -196,7 +201,6 @@ export class AdminDashboardComponent implements OnInit {
       csv += `${this.formatearFecha(r.fecha)},"${r.aspectoDetiene}",${r.ajustarPropuesta ? 'Sí' : 'No'},"${r.atencionEquipo}",${r.visitaLlamada ? 'Sí' : 'No'},${r.contacto24h ? 'Sí' : 'No'},"${r.nombreCliente || 'N/A'}","${r.telefonoCliente || 'N/A'}"\n`;
     });
 
-    // Descargar archivo
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -207,41 +211,6 @@ export class AdminDashboardComponent implements OnInit {
     link.click();
     document.body.removeChild(link);
   }
-
-  // Generar código único
-generarCodigoUnico(): string {
-  return 'HB-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-}
-
-// Generar links con códigos
-generarLinksCancelacion(): void {
-  const codigo = this.generarCodigoUnico();
-  const baseUrl = window.location.origin;
-  const link = `${baseUrl}/cancelacion?codigo=${codigo}`;
-  
-  this.copiarAlPortapapeles(link);
-  alert(`✅ Link generado y copiado al portapapeles:\n\n${link}\n\nEste link puede usarse UNA VEZ para responder la encuesta.`);
-}
-
-generarLinksSeguimiento(): void {
-  const codigo = this.generarCodigoUnico();
-  const baseUrl = window.location.origin;
-  const link = `${baseUrl}/seguimiento?codigo=${codigo}`;
-  
-  this.copiarAlPortapapeles(link);
-  alert(`✅ Link generado y copiado al portapapeles:\n\n${link}\n\nEste link puede usarse UNA VEZ para responder la encuesta.`);
-}
-
-copiarAlPortapapeles(texto: string): void {
-  const textarea = document.createElement('textarea');
-  textarea.value = texto;
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textarea);
-}
 
   logout(): void {
     this.authService.logout();

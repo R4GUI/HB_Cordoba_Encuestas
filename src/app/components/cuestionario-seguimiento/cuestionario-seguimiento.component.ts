@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router } from '@angular/router';
 import { EncuestasService } from '../../services/encuestas.service';
 
 @Component({
@@ -18,32 +18,18 @@ export class CuestionarioSeguimientoComponent implements OnInit {
   visitaLlamada: boolean | null = null;
   contacto24h: boolean | null = null;
   yaRespondio = false;
-  codigoAcceso = '';
 
-  // Formulario de contacto
   mostrarFormularioContacto = false;
   nombreCliente = '';
   telefonoCliente = '';
 
   constructor(
     private encuestasService: EncuestasService,
-    private router: Router,
-    private route: ActivatedRoute
+    private router: Router
   ) {}
 
   async ngOnInit(): Promise<void> {
-    // Obtener código de acceso de la URL
-    this.route.queryParams.subscribe(async params => {
-      this.codigoAcceso = params['codigo'] || '';
-      
-      if (this.codigoAcceso) {
-        // Si hay código, verificar si ya fue usado
-        this.yaRespondio = await this.encuestasService.codigoYaUsado(this.codigoAcceso, 'seguimiento');
-      } else {
-        // Si no hay código, usar el método tradicional (localStorage)
-        this.yaRespondio = this.encuestasService.yaRespondioSeguimiento();
-      }
-    });
+    this.yaRespondio = await this.encuestasService.yaRespondioSeguimiento();
   }
 
   onVisitaLlamadaChange(): void {
@@ -70,29 +56,15 @@ export class CuestionarioSeguimientoComponent implements OnInit {
     }
 
     try {
-      if (this.codigoAcceso) {
-        // Guardar con código
-        await this.encuestasService.guardarRespuestaSeguimientoConCodigo({
-          aspectoDetiene: this.aspectoDetiene,
-          ajustarPropuesta: this.ajustarPropuesta,
-          atencionEquipo: this.atencionEquipo,
-          visitaLlamada: this.visitaLlamada,
-          contacto24h: this.contacto24h,
-          nombreCliente: this.nombreCliente || undefined,
-          telefonoCliente: this.telefonoCliente || undefined
-        }, this.codigoAcceso);
-      } else {
-        // Guardar método tradicional
-        await this.encuestasService.guardarRespuestaSeguimiento({
-          aspectoDetiene: this.aspectoDetiene,
-          ajustarPropuesta: this.ajustarPropuesta,
-          atencionEquipo: this.atencionEquipo,
-          visitaLlamada: this.visitaLlamada,
-          contacto24h: this.contacto24h,
-          nombreCliente: this.nombreCliente || undefined,
-          telefonoCliente: this.telefonoCliente || undefined
-        });
-      }
+      await this.encuestasService.guardarRespuestaSeguimiento({
+        aspectoDetiene: this.aspectoDetiene,
+        ajustarPropuesta: this.ajustarPropuesta,
+        atencionEquipo: this.atencionEquipo,
+        visitaLlamada: this.visitaLlamada,
+        contacto24h: this.contacto24h,
+        nombreCliente: this.nombreCliente || undefined,
+        telefonoCliente: this.telefonoCliente || undefined
+      });
 
       this.router.navigate(['/gracias'], { queryParams: { tipo: 'seguimiento' } });
     } catch (error) {

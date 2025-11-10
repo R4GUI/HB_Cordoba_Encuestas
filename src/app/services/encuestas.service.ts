@@ -12,6 +12,7 @@ export interface RespuestaCancelacion {
   motivoPrincipal: string;
   nombreCliente?: string;
   telefonoCliente?: string;
+  deviceId?: string;
 }
 
 export interface RespuestaSeguimiento {
@@ -24,6 +25,7 @@ export interface RespuestaSeguimiento {
   contacto24h: boolean;
   nombreCliente?: string;
   telefonoCliente?: string;
+  deviceId?: string;
 }
 
 @Injectable({
@@ -35,33 +37,86 @@ export class EncuestasService {
   private respuestasSeguimiento: RespuestaSeguimiento[] = [];
 
   constructor() {
-    // Inicializar Firebase
     const app = initializeApp(environment.firebase);
     this.db = getFirestore(app);
-    
-    // Verificar si ya respondió (localStorage solo para bloqueo local)
-    this.cargarBloqueos();
   }
 
-  private cargarBloqueos(): void {
-    // Solo para bloquear en el dispositivo actual
+  // Obtener ID único del dispositivo
+  private obtenerIDDispositivo(): string {
+    let deviceId = localStorage.getItem('hb_device_id');
+    if (!deviceId) {
+      deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('hb_device_id', deviceId);
+    }
+    return deviceId;
   }
 
-  // Verificar si el usuario ya respondió (solo en este dispositivo)
-  yaRespondoCancelacion(): boolean {
-    return localStorage.getItem('usuario_respondio_cancelacion') === 'true';
+  // Verificar si el dispositivo ya respondió cancelación (Firebase)
+  async yaRespondoCancelacion(): Promise<boolean> {
+    try {
+      const deviceId = this.obtenerIDDispositivo();
+      const querySnapshot = await getDocs(collection(this.db, 'bloqueosCancelacion'));
+      
+      let bloqueado = false;
+      querySnapshot.forEach((doc) => {
+        if (doc.data()['deviceId'] === deviceId) {
+          bloqueado = true;
+        }
+      });
+      
+      return bloqueado;
+    } catch (error) {
+      console.error('Error al verificar bloqueo:', error);
+      return false;
+    }
   }
 
-  yaRespondioSeguimiento(): boolean {
-    return localStorage.getItem('usuario_respondio_seguimiento') === 'true';
+  // Verificar si el dispositivo ya respondió seguimiento (Firebase)
+  async yaRespondioSeguimiento(): Promise<boolean> {
+    try {
+      const deviceId = this.obtenerIDDispositivo();
+      const querySnapshot = await getDocs(collection(this.db, 'bloqueosSeguimiento'));
+      
+      let bloqueado = false;
+      querySnapshot.forEach((doc) => {
+        if (doc.data()['deviceId'] === deviceId) {
+          bloqueado = true;
+        }
+      });
+      
+      return bloqueado;
+    } catch (error) {
+      console.error('Error al verificar bloqueo:', error);
+      return false;
+    }
   }
 
-  private marcarCancelacionRespondida(): void {
-    localStorage.setItem('usuario_respondio_cancelacion', 'true');
+  // Marcar dispositivo como que ya respondió cancelación (Firebase)
+  private async marcarCancelacionRespondida(): Promise<void> {
+    try {
+      const deviceId = this.obtenerIDDispositivo();
+      await addDoc(collection(this.db, 'bloqueosCancelacion'), {
+        deviceId: deviceId,
+        fecha: Timestamp.now(),
+        navegador: navigator.userAgent
+      });
+    } catch (error) {
+      console.error('Error al marcar bloqueo:', error);
+    }
   }
 
-  private marcarSeguimientoRespondido(): void {
-    localStorage.setItem('usuario_respondio_seguimiento', 'true');
+  // Marcar dispositivo como que ya respondió seguimiento (Firebase)
+  private async marcarSeguimientoRespondido(): Promise<void> {
+    try {
+      const deviceId = this.obtenerIDDispositivo();
+      await addDoc(collection(this.db, 'bloqueosSeguimiento'), {
+        deviceId: deviceId,
+        fecha: Timestamp.now(),
+        navegador: navigator.userAgent
+      });
+    } catch (error) {
+      console.error('Error al marcar bloqueo:', error);
+    }
   }
 
   // Guardar respuesta de cancelación en Firebase
@@ -69,10 +124,11 @@ export class EncuestasService {
     try {
       const docRef = await addDoc(collection(this.db, 'respuestasCancelacion'), {
         ...respuesta,
-        fecha: Timestamp.now()
+        fecha: Timestamp.now(),
+        deviceId: this.obtenerIDDispositivo()
       });
       console.log('Respuesta guardada con ID:', docRef.id);
-      this.marcarCancelacionRespondida();
+      await this.marcarCancelacionRespondida();
     } catch (error) {
       console.error('Error al guardar respuesta:', error);
       throw error;
@@ -84,10 +140,11 @@ export class EncuestasService {
     try {
       const docRef = await addDoc(collection(this.db, 'respuestasSeguimiento'), {
         ...respuesta,
-        fecha: Timestamp.now()
+        fecha: Timestamp.now(),
+        deviceId: this.obtenerIDDispositivo()
       });
       console.log('Respuesta guardada con ID:', docRef.id);
-      this.marcarSeguimientoRespondido();
+      await this.marcarSeguimientoRespondido();
     } catch (error) {
       console.error('Error al guardar respuesta:', error);
       throw error;
@@ -110,7 +167,8 @@ export class EncuestasService {
           encontroAlternativa: data['encontroAlternativa'],
           motivoPrincipal: data['motivoPrincipal'],
           nombreCliente: data['nombreCliente'],
-          telefonoCliente: data['telefonoCliente']
+          telefonoCliente: data['telefonoCliente'],
+          deviceId: data['deviceId']
         });
       });
       
@@ -138,7 +196,8 @@ export class EncuestasService {
           visitaLlamada: data['visitaLlamada'],
           contacto24h: data['contacto24h'],
           nombreCliente: data['nombreCliente'],
-          telefonoCliente: data['telefonoCliente']
+          telefonoCliente: data['telefonoCliente'],
+          deviceId: data['deviceId']
         });
       });
       
@@ -214,142 +273,113 @@ export class EncuestasService {
     return atencion;
   }
 
-  // Eliminar TODAS las respuestas de Firebase (PELIGROSO)
-async eliminarTodasLasRespuestas(): Promise<void> {
-  try {
-    // Eliminar cancelaciones
-    const cancelacionSnapshot = await getDocs(collection(this.db, 'respuestasCancelacion'));
-    const deletePromises: Promise<void>[] = [];
-    
-    cancelacionSnapshot.forEach((doc) => {
-      deletePromises.push(deleteDoc(doc.ref));
-    });
-
-    // Eliminar seguimientos
-    const seguimientoSnapshot = await getDocs(collection(this.db, 'respuestasSeguimiento'));
-    
-    seguimientoSnapshot.forEach((doc) => {
-      deletePromises.push(deleteDoc(doc.ref));
-    });
-
-    await Promise.all(deletePromises);
-    
-    console.log('Todas las respuestas eliminadas de Firebase');
-  } catch (error) {
-    console.error('Error al eliminar respuestas:', error);
-    throw error;
-  }
-}
-
-// Obtener respuestas con filtro de fecha
-async obtenerRespuestasCancelacionPorFecha(fechaInicio: Date, fechaFin: Date): Promise<RespuestaCancelacion[]> {
-  try {
-    const querySnapshot = await getDocs(collection(this.db, 'respuestasCancelacion'));
-    const respuestas: RespuestaCancelacion[] = [];
-    
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const fecha = data['fecha'].toDate();
+  // ELIMINAR TODAS LAS RESPUESTAS DE FIREBASE
+  async eliminarTodasLasRespuestas(): Promise<void> {
+    try {
+      const deletePromises: Promise<void>[] = [];
       
-      if (fecha >= fechaInicio && fecha <= fechaFin) {
-        respuestas.push({
-          id: doc.id,
-          fecha: fecha,
-          propuestaAjustada: data['propuestaAjustada'],
-          atencionCumplio: data['atencionCumplio'],
-          encontroAlternativa: data['encontroAlternativa'],
-          motivoPrincipal: data['motivoPrincipal'],
-          nombreCliente: data['nombreCliente'],
-          telefonoCliente: data['telefonoCliente']
-        });
-      }
-    });
-    
-    return respuestas.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
-  } catch (error) {
-    console.error('Error al obtener respuestas:', error);
-    return [];
-  }
-}
+      const cancelacionSnapshot = await getDocs(collection(this.db, 'respuestasCancelacion'));
+      cancelacionSnapshot.forEach((doc) => {
+        deletePromises.push(deleteDoc(doc.ref));
+      });
 
-async obtenerRespuestasSeguimientoPorFecha(fechaInicio: Date, fechaFin: Date): Promise<RespuestaSeguimiento[]> {
-  try {
-    const querySnapshot = await getDocs(collection(this.db, 'respuestasSeguimiento'));
-    const respuestas: RespuestaSeguimiento[] = [];
-    
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const fecha = data['fecha'].toDate();
+      const seguimientoSnapshot = await getDocs(collection(this.db, 'respuestasSeguimiento'));
+      seguimientoSnapshot.forEach((doc) => {
+        deletePromises.push(deleteDoc(doc.ref));
+      });
+
+      await Promise.all(deletePromises);
+      console.log('Todas las respuestas eliminadas de Firebase');
+    } catch (error) {
+      console.error('Error al eliminar respuestas:', error);
+      throw error;
+    }
+  }
+
+  // ELIMINAR TODOS LOS BLOQUEOS
+  async eliminarTodosLosBloqueos(): Promise<void> {
+    try {
+      const deletePromises: Promise<void>[] = [];
       
-      if (fecha >= fechaInicio && fecha <= fechaFin) {
-        respuestas.push({
-          id: doc.id,
-          fecha: fecha,
-          aspectoDetiene: data['aspectoDetiene'],
-          ajustarPropuesta: data['ajustarPropuesta'],
-          atencionEquipo: data['atencionEquipo'],
-          visitaLlamada: data['visitaLlamada'],
-          contacto24h: data['contacto24h'],
-          nombreCliente: data['nombreCliente'],
-          telefonoCliente: data['telefonoCliente']
-        });
-      }
-    });
-    
-    return respuestas.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
-  } catch (error) {
-    console.error('Error al obtener respuestas:', error);
-    return [];
-  }
-}
+      const cancelacionSnapshot = await getDocs(collection(this.db, 'bloqueosCancelacion'));
+      cancelacionSnapshot.forEach((doc) => {
+        deletePromises.push(deleteDoc(doc.ref));
+      });
 
-// Verificar si un código ya fue usado
-async codigoYaUsado(codigo: string, tipo: 'cancelacion' | 'seguimiento'): Promise<boolean> {
-  try {
-    const coleccion = tipo === 'cancelacion' ? 'respuestasCancelacion' : 'respuestasSeguimiento';
-    const querySnapshot = await getDocs(collection(this.db, coleccion));
-    
-    let encontrado = false;
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data['codigoAcceso'] === codigo) {
-        encontrado = true;
-      }
-    });
-    
-    return encontrado;
-  } catch (error) {
-    console.error('Error al verificar código:', error);
-    return false;
-  }
-}
+      const seguimientoSnapshot = await getDocs(collection(this.db, 'bloqueosSeguimiento'));
+      seguimientoSnapshot.forEach((doc) => {
+        deletePromises.push(deleteDoc(doc.ref));
+      });
 
-// Guardar con código de acceso
-async guardarRespuestaCancelacionConCodigo(respuesta: Omit<RespuestaCancelacion, 'id' | 'fecha'>, codigo: string): Promise<void> {
-  try {
-    const docRef = await addDoc(collection(this.db, 'respuestasCancelacion'), {
-      ...respuesta,
-      fecha: Timestamp.now(),
-      codigoAcceso: codigo
-    });
-    console.log('Respuesta guardada con ID:', docRef.id);
-  } catch (error) {
-    console.error('Error al guardar respuesta:', error);
-    throw error;
+      await Promise.all(deletePromises);
+      console.log('Todos los bloqueos eliminados');
+    } catch (error) {
+      console.error('Error al eliminar bloqueos:', error);
+      throw error;
+    }
   }
-}
 
-async guardarRespuestaSeguimientoConCodigo(respuesta: Omit<RespuestaSeguimiento, 'id' | 'fecha'>, codigo: string): Promise<void> {
-  try {
-    const docRef = await addDoc(collection(this.db, 'respuestasSeguimiento'), {
-      ...respuesta,
-      fecha: Timestamp.now(),
-      codigoAcceso: codigo
-    });
-    console.log('Respuesta guardada con ID:', docRef.id);
-  } catch (error) {
-    console.error('Error al guardar respuesta:', error);
-    throw error;
+  // Obtener respuestas por fecha
+  async obtenerRespuestasCancelacionPorFecha(fechaInicio: Date, fechaFin: Date): Promise<RespuestaCancelacion[]> {
+    try {
+      const querySnapshot = await getDocs(collection(this.db, 'respuestasCancelacion'));
+      const respuestas: RespuestaCancelacion[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const fecha = data['fecha'].toDate();
+        
+        if (fecha >= fechaInicio && fecha <= fechaFin) {
+          respuestas.push({
+            id: doc.id,
+            fecha: fecha,
+            propuestaAjustada: data['propuestaAjustada'],
+            atencionCumplio: data['atencionCumplio'],
+            encontroAlternativa: data['encontroAlternativa'],
+            motivoPrincipal: data['motivoPrincipal'],
+            nombreCliente: data['nombreCliente'],
+            telefonoCliente: data['telefonoCliente'],
+            deviceId: data['deviceId']
+          });
+        }
+      });
+      
+      return respuestas.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+    } catch (error) {
+      console.error('Error al obtener respuestas:', error);
+      return [];
+    }
   }
-}
+
+  async obtenerRespuestasSeguimientoPorFecha(fechaInicio: Date, fechaFin: Date): Promise<RespuestaSeguimiento[]> {
+    try {
+      const querySnapshot = await getDocs(collection(this.db, 'respuestasSeguimiento'));
+      const respuestas: RespuestaSeguimiento[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const fecha = data['fecha'].toDate();
+        
+        if (fecha >= fechaInicio && fecha <= fechaFin) {
+          respuestas.push({
+            id: doc.id,
+            fecha: fecha,
+            aspectoDetiene: data['aspectoDetiene'],
+            ajustarPropuesta: data['ajustarPropuesta'],
+            atencionEquipo: data['atencionEquipo'],
+            visitaLlamada: data['visitaLlamada'],
+            contacto24h: data['contacto24h'],
+            nombreCliente: data['nombreCliente'],
+            telefonoCliente: data['telefonoCliente'],
+            deviceId: data['deviceId']
+          });
+        }
+      });
+      
+      return respuestas.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+    } catch (error) {
+      console.error('Error al obtener respuestas:', error);
+      return [];
+    }
+  }
 }
