@@ -208,6 +208,41 @@ export class AdminDashboardComponent implements OnInit {
     document.body.removeChild(link);
   }
 
+  // Generar código único
+generarCodigoUnico(): string {
+  return 'HB-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
+
+// Generar links con códigos
+generarLinksCancelacion(): void {
+  const codigo = this.generarCodigoUnico();
+  const baseUrl = window.location.origin;
+  const link = `${baseUrl}/cancelacion?codigo=${codigo}`;
+  
+  this.copiarAlPortapapeles(link);
+  alert(`✅ Link generado y copiado al portapapeles:\n\n${link}\n\nEste link puede usarse UNA VEZ para responder la encuesta.`);
+}
+
+generarLinksSeguimiento(): void {
+  const codigo = this.generarCodigoUnico();
+  const baseUrl = window.location.origin;
+  const link = `${baseUrl}/seguimiento?codigo=${codigo}`;
+  
+  this.copiarAlPortapapeles(link);
+  alert(`✅ Link generado y copiado al portapapeles:\n\n${link}\n\nEste link puede usarse UNA VEZ para responder la encuesta.`);
+}
+
+copiarAlPortapapeles(texto: string): void {
+  const textarea = document.createElement('textarea');
+  textarea.value = texto;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+}
+
   logout(): void {
     this.authService.logout();
   }

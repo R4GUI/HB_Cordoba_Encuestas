@@ -76,6 +76,22 @@
     background: rgba(255, 255, 255, 0.3);
   }
 }
+.btn-generar {
+  background: rgba(52, 199, 89, 0.2);
+  color: white;
+  border: 1px solid rgba(52, 199, 89, 0.4);
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+
+  &:hover {
+    background: rgba(52, 199, 89, 0.4);
+    transform: scale(1.05);
+  }
+}
 
 // BOTÓN SECRETO PARA ELIMINAR TODO
 .danger-zone {

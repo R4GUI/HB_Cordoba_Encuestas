@@ -5,11 +5,13 @@
         <h1>Hotel HB Córdoba</h1>
         <p class="tagline">Panel de Administración</p>
       </div>
-      <div class="header-buttons">
-        <button class="btn-reload" (click)="recargarDatos()">🔄 Recargar</button>
-        <button class="btn-reset" (click)="limpiarTodosLosDatos()">🗑️ Limpiar Bloqueos</button>
-        <button class="btn-logout" (click)="logout()">Cerrar Sesión</button>
-      </div>
+<div class="header-buttons">
+  <button class="btn-generar" (click)="generarLinksCancelacion()">🔗 Link Cancelación</button>
+  <button class="btn-generar" (click)="generarLinksSeguimiento()">🔗 Link Seguimiento</button>
+  <button class="btn-reload" (click)="recargarDatos()">🔄 Recargar</button>
+  <button class="btn-reset" (click)="limpiarTodosLosDatos()">🗑️ Limpiar Bloqueos</button>
+  <button class="btn-logout" (click)="logout()">Cerrar Sesión</button>
+</div>
     </div>
   </div>
 

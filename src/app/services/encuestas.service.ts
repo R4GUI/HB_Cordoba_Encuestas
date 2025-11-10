@@ -302,4 +302,54 @@ async obtenerRespuestasSeguimientoPorFecha(fechaInicio: Date, fechaFin: Date): P
     return [];
   }
 }
+
+// Verificar si un código ya fue usado
+async codigoYaUsado(codigo: string, tipo: 'cancelacion' | 'seguimiento'): Promise<boolean> {
+  try {
+    const coleccion = tipo === 'cancelacion' ? 'respuestasCancelacion' : 'respuestasSeguimiento';
+    const querySnapshot = await getDocs(collection(this.db, coleccion));
+    
+    let encontrado = false;
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data['codigoAcceso'] === codigo) {
+        encontrado = true;
+      }
+    });
+    
+    return encontrado;
+  } catch (error) {
+    console.error('Error al verificar código:', error);
+    return false;
+  }
+}
+
+// Guardar con código de acceso
+async guardarRespuestaCancelacionConCodigo(respuesta: Omit<RespuestaCancelacion, 'id' | 'fecha'>, codigo: string): Promise<void> {
+  try {
+    const docRef = await addDoc(collection(this.db, 'respuestasCancelacion'), {
+      ...respuesta,
+      fecha: Timestamp.now(),
+      codigoAcceso: codigo
+    });
+    console.log('Respuesta guardada con ID:', docRef.id);
+  } catch (error) {
+    console.error('Error al guardar respuesta:', error);
+    throw error;
+  }
+}
+
+async guardarRespuestaSeguimientoConCodigo(respuesta: Omit<RespuestaSeguimiento, 'id' | 'fecha'>, codigo: string): Promise<void> {
+  try {
+    const docRef = await addDoc(collection(this.db, 'respuestasSeguimiento'), {
+      ...respuesta,
+      fecha: Timestamp.now(),
+      codigoAcceso: codigo
+    });
+    console.log('Respuesta guardada con ID:', docRef.id);
+  } catch (error) {
+    console.error('Error al guardar respuesta:', error);
+    throw error;
+  }
+}
 }

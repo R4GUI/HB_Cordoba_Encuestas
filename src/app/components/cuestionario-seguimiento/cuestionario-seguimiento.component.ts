@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { EncuestasService } from '../../services/encuestas.service';
 
 @Component({
@@ -18,6 +18,7 @@ export class CuestionarioSeguimientoComponent implements OnInit {
   visitaLlamada: boolean | null = null;
   contacto24h: boolean | null = null;
   yaRespondio = false;
+  codigoAcceso = '';
 
   // Formulario de contacto
   mostrarFormularioContacto = false;
@@ -26,14 +27,25 @@ export class CuestionarioSeguimientoComponent implements OnInit {
 
   constructor(
     private encuestasService: EncuestasService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
-  ngOnInit(): void {
-    this.yaRespondio = this.encuestasService.yaRespondioSeguimiento();
+  async ngOnInit(): Promise<void> {
+    // Obtener código de acceso de la URL
+    this.route.queryParams.subscribe(async params => {
+      this.codigoAcceso = params['codigo'] || '';
+      
+      if (this.codigoAcceso) {
+        // Si hay código, verificar si ya fue usado
+        this.yaRespondio = await this.encuestasService.codigoYaUsado(this.codigoAcceso, 'seguimiento');
+      } else {
+        // Si no hay código, usar el método tradicional (localStorage)
+        this.yaRespondio = this.encuestasService.yaRespondioSeguimiento();
+      }
+    });
   }
 
-  // Detectar cuando quiere que lo contacten
   onVisitaLlamadaChange(): void {
     this.mostrarFormularioContacto = this.visitaLlamada === true || this.contacto24h === true;
   }
@@ -42,40 +54,54 @@ export class CuestionarioSeguimientoComponent implements OnInit {
     this.mostrarFormularioContacto = this.visitaLlamada === true || this.contacto24h === true;
   }
 
-async onSubmit(): Promise<void> {
-  if (!this.aspectoDetiene || this.ajustarPropuesta === null || 
-      !this.atencionEquipo || this.visitaLlamada === null || this.contacto24h === null) {
-    alert('Por favor, responda todas las preguntas');
-    return;
-  }
-
-  if (this.mostrarFormularioContacto) {
-    if (!this.nombreCliente.trim() || !this.telefonoCliente.trim()) {
-      alert('Por favor, ingrese su nombre y teléfono para que podamos contactarle');
+  async onSubmit(): Promise<void> {
+    if (!this.aspectoDetiene || this.ajustarPropuesta === null || 
+        !this.atencionEquipo || this.visitaLlamada === null || this.contacto24h === null) {
+      alert('Por favor, responda todas las preguntas');
       return;
     }
-    this.enviarWhatsApp();
-  }
 
-  try {
-    await this.encuestasService.guardarRespuestaSeguimiento({
-      aspectoDetiene: this.aspectoDetiene,
-      ajustarPropuesta: this.ajustarPropuesta,
-      atencionEquipo: this.atencionEquipo,
-      visitaLlamada: this.visitaLlamada,
-      contacto24h: this.contacto24h,
-      nombreCliente: this.nombreCliente || undefined,
-      telefonoCliente: this.telefonoCliente || undefined
-    });
+    if (this.mostrarFormularioContacto) {
+      if (!this.nombreCliente.trim() || !this.telefonoCliente.trim()) {
+        alert('Por favor, ingrese su nombre y teléfono para que podamos contactarle');
+        return;
+      }
+      this.enviarWhatsApp();
+    }
 
-    this.router.navigate(['/gracias'], { queryParams: { tipo: 'seguimiento' } });
-  } catch (error) {
-    alert('Error al guardar la respuesta. Por favor, intente de nuevo.');
+    try {
+      if (this.codigoAcceso) {
+        // Guardar con código
+        await this.encuestasService.guardarRespuestaSeguimientoConCodigo({
+          aspectoDetiene: this.aspectoDetiene,
+          ajustarPropuesta: this.ajustarPropuesta,
+          atencionEquipo: this.atencionEquipo,
+          visitaLlamada: this.visitaLlamada,
+          contacto24h: this.contacto24h,
+          nombreCliente: this.nombreCliente || undefined,
+          telefonoCliente: this.telefonoCliente || undefined
+        }, this.codigoAcceso);
+      } else {
+        // Guardar método tradicional
+        await this.encuestasService.guardarRespuestaSeguimiento({
+          aspectoDetiene: this.aspectoDetiene,
+          ajustarPropuesta: this.ajustarPropuesta,
+          atencionEquipo: this.atencionEquipo,
+          visitaLlamada: this.visitaLlamada,
+          contacto24h: this.contacto24h,
+          nombreCliente: this.nombreCliente || undefined,
+          telefonoCliente: this.telefonoCliente || undefined
+        });
+      }
+
+      this.router.navigate(['/gracias'], { queryParams: { tipo: 'seguimiento' } });
+    } catch (error) {
+      alert('Error al guardar la respuesta. Por favor, intente de nuevo.');
+    }
   }
-}
 
   enviarWhatsApp(): void {
-    const numeroEmpresa = '5212713977168'; // +52 271 3977168
+    const numeroEmpresa = '5212713977168';
     
     let mensaje = `*Solicitud de Contacto - Cuestionario de Seguimiento*\n\n`;
     mensaje += `👤 *Nombre:* ${this.nombreCliente}\n`;
@@ -90,7 +116,6 @@ async onSubmit(): Promise<void> {
     const mensajeCodificado = encodeURIComponent(mensaje);
     const urlWhatsApp = `https://wa.me/${numeroEmpresa}?text=${mensajeCodificado}`;
     
-    // Abrir WhatsApp en nueva pestaña
     window.open(urlWhatsApp, '_blank');
   }
 }
